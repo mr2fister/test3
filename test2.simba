@@ -1,0 +1,1580 @@
+{$DEFINE SCRIPT_ID := 'f2a05a97-631a-4283-81c0-690b828402ca'}
+{$DEFINE SCRIPT_REVISION := '71'}
+{$DEFINE SCRIPT_GUI}
+{$I SRL-T/osr.simba}
+{$I WaspLib/osr.simba}
+{$I WaspLib/osr/walker/agility.graph}
+{$I WaspLib/osr/handlers/alchhandler.simba}
+type
+  ERSCourse = (
+    DRAYNOR_VILLAGE, ALKHARID, VARROCK_ROOF, CANIFIS, APE_ATOLL, FALADOR_ROOF,
+    SEERS_VILLAGE, CAMELOT, POLLNIVNEACH, RELLEKKA, ARDOUGNE_ROOF
+  );
+
+var
+  CurrentCourse := ERSCourse.ARDOUGNE_ROOF;
+  DoAlchemy := True;
+
+const
+  GnomeVillageATPA: T2DPointArray := [
+		[[89, 76], [177, 76], [177, 106], [89, 106]],
+		[[90, 121], [124, 121], [124, 148], [90, 148]],
+		[[335, 180], [364, 180], [364, 198], [335, 198]],
+		[[333, 77], [365, 77], [365, 106], [333, 106]],
+		[[383, 76], [383, 106], [413, 106], [413, 76]],
+		[[135, 133], [174, 133], [175, 193], [135, 193]],
+		[[135, 114], [174, 114], [174, 132], [135, 132]]
+	];
+  DraynorATPA: T2DPointArray := [
+		[[720, 56], [836, 56], [835, 253], [720, 253]],
+		[[529, 77], [557, 77], [557, 104], [529, 104]],
+		[[506, 85], [484, 107], [502, 125], [524, 103]],
+		[[496, 129], [525, 129], [525, 149], [496, 149]],
+		[[486, 157], [506, 157], [506, 182], [486, 182]],
+		[[486, 183], [524, 183], [524, 193], [486, 193]],
+		[[525, 158], [555, 158], [555, 187], [525, 187]]
+	];
+  AlKharidATPA: T2DPointArray := [
+		[[45, 297], [305, 298], [316, 557], [28, 553]],
+		[[691, 375], [735, 378], [736, 431], [720, 440], [692, 439]],
+		[[665, 453], [718, 454], [716, 519], [665, 526]],
+		[[742, 445], [789, 444], [841, 471], [841, 527], [741, 525]],
+		[[428, 348], [474, 348], [470, 386], [430, 384]],
+		[[560, 418], [603, 419], [602, 454], [563, 454]],
+		[[860, 402], [860, 444], [896, 444], [896, 402]],
+		[[826, 421], [798, 391], [820, 372], [848, 399]]
+	];
+  VarrockATPA: T2DPointArray := [
+		[[19, 575], [318, 577], [357, 615], [358, 849], [317, 889], [23, 889], [3, 872], [3, 602]],
+		[[566, 659], [598, 659], [598, 706], [566, 706]],
+		[[513, 654], [555, 654], [555, 694], [513, 694]],
+		[[839, 670], [871, 670], [871, 686], [839, 686]],
+		[[475, 709], [515, 709], [515, 738], [475, 738]],
+		[[437, 743], [519, 743], [519, 723], [552, 723], [552, 766], [476, 821], [437, 817]],
+		[[582, 718], [648, 718], [648, 775], [582, 775]],
+		[[654, 704], [679, 704], [679, 733], [654, 733]],
+		[[654, 670], [679, 670], [679, 703], [654, 703]]
+	];
+  CanifisATPA: T2DPointArray := [
+		[[3, 939], [45, 896], [247, 898], [284, 935], [286, 1142], [247, 1179], [44, 1179], [3, 1137]],
+		[[735, 879], [774, 879], [774, 934], [735, 934]],
+		[[702, 846], [746, 846], [746, 872], [702, 872]],
+		[[657, 853], [701, 853], [701, 891], [657, 891]],
+		[[1191, 1176], [1226, 1176], [1226, 1221], [1191, 1221]],
+		[[628, 926], [665, 926], [665, 958], [628, 958]],
+		[[1234, 1266], [1326, 1266], [1326, 1310], [1234, 1310]],
+		[[753, 942], [795, 942], [795, 988], [753, 988]]
+	];
+  ApeAtollATPA: T2DPointArray := [
+		[[1805, 548], [1810, 521], [1805, 501], [1817, 482], [1921, 472], [1958, 558], [1898, 627], [1847, 587], [1842, 545], [1837, 529], [1830, 528], [1818, 545], [1818, 565], [1805, 563]],
+		[[1788, 566], [1789, 548], [1800, 548], [1800, 567]],
+		[[497, 900], [522, 900], [522, 921], [497, 921]],
+		[[1782, 562], [1783, 549], [1763, 549], [1770, 560]],
+		[[1756, 546], [1719, 524], [1694, 529], [1740, 594], [1780, 607], [1802, 608], [1802, 568], [1774, 567]],
+		[[1803, 569], [1821, 569], [1821, 544], [1829, 530], [1837, 531], [1839, 553], [1837, 584], [1849, 607], [1887, 632], [1938, 633], [1943, 648], [1870, 650], [1827, 629], [1803, 617]]
+	];
+  FaladorATPA: T2DPointArray := [
+    [[969, 50], [1009, 3], [1271, 1], [1306, 54], [1297, 328], [959, 325]],
+    [[1095, 532], [1125, 532], [1125, 565], [1095, 565]],
+    [[1134, 539], [1145, 525], [1168, 525], [1168, 566], [1134, 566]],
+    [[1145, 488], [1164, 488], [1164, 508], [1145, 508]],
+    [[1134, 452], [1156, 452], [1156, 488], [1134, 488]],
+    [[1128, 464], [1128, 488], [1089, 488], [1089, 464]],
+    [[1060, 501], [1080, 501], [1080, 522], [1060, 522]],
+    [[991, 488], [1048, 488], [1048, 519], [991, 519]],
+    [[1022, 526], [1050, 526], [1050, 557], [1022, 557]],
+    [[996, 545], [1006, 534], [1021, 531], [1021, 555], [996, 555]],
+    [[991, 556], [1016, 556], [1017, 587], [991, 588]],
+    [[1004, 588], [1023, 588], [1032, 583], [1032, 610], [1004, 607]],
+    [[1033, 580], [1071, 580], [1071, 607], [1033, 607]]
+  ];
+  SeersATPA: T2DPointArray := [
+		[[294, 1036], [335, 996], [546, 996], [585, 1036], [585, 1254], [544, 1296], [334, 1296], [293, 1254]],
+		[[791, 1103], [848, 1104], [848, 1146], [790, 1148]],
+		[[991, 1100], [1045, 1100], [1045, 1157], [993, 1156]],
+		[[1011, 1166], [1054, 1165], [1053, 1205], [1011, 1203]],
+		[[701, 1178], [795, 1184], [792, 1230], [700, 1233]],
+		[[934, 1229], [1005, 1227], [1002, 1271], [937, 1273]]
+	];
+  CamelotATPA: T2DPointArray := [
+    [[319, 1121], [319, 1038], [531, 1038], [531, 1121]],
+    [[791, 1103], [848, 1104], [848, 1146], [790, 1148]],
+    [[991, 1100], [1045, 1100], [1045, 1157], [993, 1156]],
+    [[1011, 1166], [1054, 1165], [1053, 1205], [1011, 1203]],
+    [[701, 1178], [795, 1184], [792, 1230], [700, 1233]],
+    [[934, 1229], [1005, 1227], [1002, 1271], [937, 1273]],
+    [[293, 1122], [583, 1122], [585, 1177], [584, 1253], [539, 1295], [333, 1291], [295, 1253]]
+  ];
+  PollnivneachATPA: T2DPointArray := [
+    [[1378, 39], [1520, 37], [1560, 170], [1532, 279], [1443, 325], [1364, 291]],
+    [[1269, 520], [1300, 520], [1300, 554], [1269, 554]],
+    [[1292, 489], [1316, 489], [1316, 514], [1292, 514]],
+    [[1324, 477], [1344, 477], [1344, 498], [1324, 498]],
+    [[1348, 486], [1375, 486], [1375, 511], [1348, 511]],
+    [[1345, 451], [1372, 451], [1372, 476], [1345, 476]],
+    [[1145, 718], [1200, 718], [1200, 750], [1145, 750]],
+    [[1152, 677], [1222, 677], [1222, 710], [1152, 710]],
+    [[1150, 641], [1192, 641], [1192, 670], [1150, 670]]
+  ];
+  PrifddinasATPA: T2DPointArray := [
+    [[1707, 797], [1852, 798], [1852, 873], [1903, 873], [1902, 932], [1706, 931]],
+    [[1369, 947], [1393, 947], [1393, 1000], [1369, 1000]],
+    [[1438, 968], [1464, 968], [1464, 988], [1438, 988]],
+    [[1425, 936], [1440, 936], [1440, 959], [1425, 959]],
+    [[1860, 848], [1871, 848], [1871, 864], [1860, 864]],
+    [[1827, 1254], [1882, 1254], [1898, 1307], [1827, 1307]],
+    [[1207, 1013], [1233, 1013], [1233, 1041], [1207, 1041]],
+    [[1163, 1026], [1187, 1026], [1187, 1051], [1163, 1051]],
+    [[1772, 1236], [1826, 1236], [1826, 1308], [1772, 1308]],
+    [[1118, 992], [1145, 992], [1145, 1020], [1118, 1020]],
+    [[1122, 948], [1148, 948], [1148, 978], [1122, 978]],
+    [[1143, 909], [1170, 909], [1170, 937], [1143, 937]],
+    [[1796, 1102], [1825, 1078], [1876, 1079], [1896, 1100], [1886, 1143], [1866, 1167], [1818, 1159], [1798, 1141]]
+  ];
+  RellekkaATPA: T2DPointArray := [
+		[[1599, 216], [1688, 90], [1771, 28], [1902, 15], [1966, 43], [1967, 358], [1930, 388], [1774, 393], [1627, 294]],
+		[[1351, 687], [1376, 687], [1376, 712], [1351, 712]],
+		[[1323, 719], [1361, 719], [1361, 769], [1323, 769]],
+		[[1368, 772], [1391, 772], [1391, 795], [1368, 795]],
+		[[1419, 779], [1448, 779], [1448, 804], [1419, 804]],
+		[[1436, 742], [1473, 742], [1473, 773], [1436, 773]],
+		[[1483, 649], [1537, 649], [1537, 674], [1522, 684], [1522, 740], [1483, 740]]
+	];
+  ArdougneATPA: T2DPointArray := [
+		[[1456, 1075], [1676, 1082], [1698, 1318], [1669, 1362], [1460, 1365], [1419, 1323], [1421, 1108]],
+		[[975, 890], [986, 890], [986, 941], [975, 941]],
+		[[937, 855], [964, 856], [964, 867], [937, 867]],
+		[[908, 856], [928, 856], [928, 867], [908, 867]],
+		[[905, 874], [912, 874], [912, 897], [905, 897]],
+		[[896, 894], [904, 894], [904, 915], [915, 915], [924, 935], [896, 935]],
+		[[903, 936], [929, 936], [930, 956], [911, 956]]
+	];
+
+  RSCOURSES := [
+    DraynorATPA, AlKharidATPA, VarrockATPA, CanifisATPA, ApeAtollATPA, FaladorATPA,
+    SeersATPA, CamelotATPA, PollnivneachATPA, RellekkaATPA, ArdougneATPA
+  ];
+var
+  SeersTPA: TPointArray;
+
+type
+  TAgility = record(TBaseWalkerScript)
+    AgilityCourse:
+      record
+        Level: Int32;
+        Steps: T2DPointArray;
+        Obstacles: TRSObjectArray;
+
+        MarkOfGraceArray: TRSGroundItemArray;
+        MOGSteps: TIntegerArray;
+
+        PortalArray: TRSObjectArray;
+      end;
+
+    Position: TPoint;
+    CourseStep: Int32;
+    CurrentHP: Int32;
+
+    Obstacle: TRSObject;
+    MarkOfGrace: TRSGroundItem;
+    Portal: TRSObject;
+
+    AgilityLevel: Int32;
+
+    AlchValue: Int32;
+    MarkValue: Int32;
+
+    AlchItem: TRSItem;
+  end;
+
+//Setup Antiban override. Will add some extra antiban features to our script aside from what's built in, in WaspLib.
+procedure TAntiban.Setup(); override;
+begin
+  Self.Skills := [ERSSkill.AGILITY, ERSSkill.TOTAL];
+  Self.MinZoom := 0;
+  Self.MaxZoom := 30;
+
+  inherited;
+end;
+
+//Setup a common obstacle template.
+procedure TRSObject.SetObject(objUpText: TStringArray; coordinates: TPointArray; shape: Vector3);
+begin
+  Self := [];
+  Self.SetupEx(shape, coordinates);
+  Self.SetupUpText(objUpText);
+
+  Filter := [True, False, True, True];
+end;
+
+//Sets RSObjects for all obstacles in the course we are going to be doing.
+procedure TAgility.SetupObstacles();
+begin
+  case CurrentCourse of
+  (*
+    ERSCourse.GNOME:
+      begin
+        AgilityCourse.Level := 1;
+
+        AgilityCourse.Steps := GnomeVillageATPA;
+
+        Obstacle.SetObject(['across', 'Log', 'balance'],
+                           [[[107, 104]], [1, 2, 0]);
+        Obstacle.Finder.Colors += CTS2(473175, 11, 0.09, 1.50);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Climb', 'Obstacle', 'net'],
+                [[[106, 146]], [6, 0.5, 7]);
+        Obstacle.Finder.Colors += CTS2(473175, 11, 0.09, 1.50);
+        Obstacle.Finder.Colors += CTS2(2049907, 20, 0.09, 2.17);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Climb', 'Tree', 'branch'],
+                [[[346, 193]], [0.5, 1, 5]);
+        Obstacle.Finder.Colors += CTS2(1198176, 17, 0.05, 1.91);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['-on', 'Balancing', 'rope'],
+                [[[365, 89]], [1, 0.5, 0]);
+        Obstacle.Finder.Colors += CTS2(5733528, 11, 0.03, 0.41);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Climb', 'Tree', 'branch'],
+                           [[[396, 92]], [1, 0.5, 5]);
+        Obstacle.ShapeArray += [[[400, 88]], [0.5, 1, 5]];
+        Obstacle.Finder.Colors += CTS2(931657, 12, 0.07, 2.83);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Climb', 'Obstacle', 'net'],
+                [[[146, 142]], [4, 0.5, 7]);
+        Obstacle.Finder.Colors += CTS2(473175, 11, 0.09, 1.50);
+        Obstacle.Finder.Colors += CTS2(2049907, 20, 0.09, 2.17);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Squeeze', 'Obstacle', 'pipe'],
+                [[[146, 118]], [1, 1, 5]);
+        Obstacle.Finder.Colors += CTS2(4343372, 21, 0.33, 0.24);
+        AgilityCourse.Obstacles += Obstacle;
+      end;
+  *)
+    ERSCourse.DRAYNOR_VILLAGE:
+      begin
+        AgilityCourse.Level := 10;
+
+        AgilityCourse.Steps := DraynorATPA;
+
+        Obstacle.SetObject(['Climb', 'Rough', 'wall'], [[815, 99]], [0.5, 1, 7]);
+        Obstacle.Finder.ColorClusters += [CTS2(1651006, 11, 0.15, 0.59), CTS2(2701633, 9, 0.30, 1.07), 30];
+        Obstacle.Finder.ColorClusters += [CTS2(4474191, 22, 0.08, 0.19), CTS2(3689815, 16, 0.15, 0.50), 30];
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Cross', 'Tight', 'rope'], [[533, 97]], [1, 1, 0]);
+        Obstacle.Finder.Colors += CTS2(4547703, 21, 0.06, 0.20);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Cross', 'Tight', 'rope'], [[511, 103]], [1, 1, 0]);
+        Obstacle.Finder.Colors += CTS2(4547703, 21, 0.06, 0.20);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Balance', 'Narrow', 'wall'], [[501, 149]], [1, 1, 2]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump', '-up', 'Wall'], [[494, 181]], [2, 1, 5]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump', 'Gap'], [[524, 186]], [1, 1, 5]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Climb', '-down', 'Crate'], [[552, 164]], [1, 1.5, 5]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+      end;
+
+    ERSCourse.ALKHARID:
+      begin
+        AgilityCourse.Level := 20;
+
+        AgilityCourse.Steps := AlKharidATPA;
+
+        Obstacle.SetObject(['Climb', 'Rough', 'wall'], [[96, 370]], [1, 1, 7]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Cross', 'Tight', 'rope'], [[704, 430]], [1, 1, 0]);
+        Obstacle.Finder.Colors += CTS2(6645359, 21, 0.09, 0.08);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Swing', '-across', 'Cable'], [[692, 491]], [1, 1, 7]);
+        Obstacle.Finder.Colors += CTS2(13367, 8, 0.21, 0.01);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Teeth', '-grip', 'Zip', 'line'], [[829, 502]], [1, 1, 2]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Swing', '-across', 'Tropical', 'tree'], [[455, 351]], [1.5, 1, 4]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Climb', 'Roof', 'top', 'beams'], [[583, 422]], [1, 1, 3]);
+        Obstacle.Finder.Colors += CTS2(405837, 9, 0.11, 2.00);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Cross', 'Tight', 'rope'], [[869, 410]], [1, 1, 0]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump', 'Gap'], [[817, 385]], [1, 1, 2]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+      end;
+
+    ERSCourse.VARROCK_ROOF:
+      begin
+        AgilityCourse.Level := 30;
+
+        AgilityCourse.Steps := VarrockATPA;
+
+        Obstacle.SetObject(['Climb', 'Rough', 'wall'], [[206, 712]], [0.5, 1, 7]);
+        Obstacle.Finder.Colors += CTS2(2375245, 12, 0.09, 0.48);
+        Obstacle.Finder.Colors += CTS2(6513514, 9, 1.94, 0.07);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Cross', 'Clothes', 'line'], [[564, 686]], [1, 1, 0]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Leap', 'Gap'], [[514, 674]], [1, 1, 4]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Balance', 'Wall'], [[842, 681]], [1, 2, 4]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Leap', 'Gap'], [[490, 736]], [3, 1, 4]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Leap', 'Gap'], [[550, 744]], [1, 3, 4]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Leap', 'Gap'], [[644, 732]], [1.5, 1, 5]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Hurdle', 'Ledge'], [[666, 702]], [2, 1, 5]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump', '-off', 'Edge'], [[659, 675]], [1, 1, 3]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+      end;
+
+    ERSCourse.CANIFIS:
+      begin
+        AgilityCourse.Level := 40;
+
+        AgilityCourse.Steps := CanifisATPA;
+
+        Obstacle.SetObject(['Climb', 'Tall', 'tree'], [[195, 1030]], [3, 1, 14]);
+        Obstacle.Finder.Colors += CTS2(2835774, 15, 0.12, 0.49);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump', 'Gap'], [[746, 888]], [2, 1, 2]);
+        Obstacle.Filter.UpText := False;
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump', 'Gap'], [[709, 862]], [0.7, 1.5, 2]);
+        Obstacle.Filter.UpText := False;
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump', 'Gap'], [[665, 882]], [1, 1, 2]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump', 'Gap'], [[1212, 1215]], [1, 1, 2]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Vault', 'Pole', 'vault'], [[645, 947]], [1, 1, 0]);
+        Obstacle.Finder.Colors += CTS2(2971755, 7, 0.07, 0.28);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump', 'Gap'], [[1313, 1276]], [1, 1, 2]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump', 'Gap'], [[764, 945]], [1, 1, 2]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+      end;
+
+    ERSCourse.APE_ATOLL:
+      begin
+        DoAlchemy := False;
+        AgilityCourse.Level := 48;
+
+        AgilityCourse.Steps := ApeAtollATPA;
+
+        Obstacle.SetObject(['Jump-to', 'Stepping', 'stone'], [[1802, 552]], [1, 1, 1]);
+        Obstacle.Finder.Colors += CTS2(2587272, 29, 0.03, 1.56);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Climb ', 'Tropical', 'tree'], [[1799, 556]], [1, 1, 10]);
+        Obstacle.Finder.Colors += CTS2(2584200, 29, 0.11, 1.56);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Cross', 'Monkey', 'bars'], [[503, 910]], [1, 1, 8]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Climb-up', 'Skull', 'slope'], [[1770, 554]], [1, 0.8, 3]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Swing', 'Rope'], [[1794, 595]], [1, 1, 10]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Climb', 'Tropical', 'tree'], [[1813, 583]], [1, 1, 10]);
+        Obstacle.Finder.Colors += CTS2(2584200, 29, 0.11, 1.56);
+        AgilityCourse.Obstacles += Obstacle;
+      end;
+
+    ERSCourse.FALADOR_ROOF:
+      begin
+        AgilityCourse.Level := 50;
+
+        AgilityCourse.Steps := FaladorATPA;
+
+        Obstacle.SetObject(['Climb', 'Rough', 'wall'], [[1162, 211]], [1, 0.2, 5]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Cross', 'Tightrope'], [[1120, 554]], [1, 1, 0]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Cross', 'Hand', 'holds'], [[1158, 523]], [1, 2, 7]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump', 'Gap'], [[1151, 489]], [1, 1, 5]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump', 'Gap'], [[1135, 476]], [1, 2, 5]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Cross', 'Tightrope'], [[1094, 480]], [1, 1, 0]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Cross', 'Tightrope'], [[1061, 513]], [1, 1, 0]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump', 'Gap'], [[1026, 513]], [2, 1, 5]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump', 'Ledge'], [[1022, 545]], [1, 1, 3]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump', 'Ledge'], [[1007, 554]], [2, 1, 3]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump', 'Ledge'], [[1006, 588]], [2, 1, 3]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump', 'Ledge'], [[1030, 594]], [1, 1, 3]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump', 'Ledge'], [[1056, 589]], [1, 1, 3]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+      end;
+
+	  ERSCourse.SEERS_VILLAGE, CAMELOT:
+      begin
+        AgilityCourse.Level := 60;
+
+        if CurrentCourse = ERSCourse.SEERS_VILLAGE then
+        begin
+          AgilityCourse.Steps := SeersATPA;
+          SeersTPA := PopulateTile([490, 1101], 3); //Gets several tiles around the destination tile.
+        end
+        else
+          AgilityCourse.Steps := CamelotATPA;
+
+        Obstacle.SetObject(['Wall'], [[492, 1084]], [1, 1, 4]);
+        Obstacle.Finder.Colors += CTS2(8557200, 8, 1.16, 0.57);
+        Obstacle.Finder.Colors += CTS2(1601899, 10, 0.27, 1.90);
+
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump', 'Gap'], [[794, 1121]], [1, 3, 4]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Cross', 'Tight', 'rope'], [[1022, 1144]], [1, 1, 0]);
+        Obstacle.Finder.Colors += CTS2(3426901, 11, 0.08, 0.16);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump', 'Gap'], [[1030, 1197]], [3, 1, 4]);
+        Obstacle.Filter.Finder := False;
+        Obstacle.Finder.Colors += CTS2(6123647, 25, 0.32, 0.57);
+        Obstacle.Finder.Colors += CTS2(1601899, 10, 0.27, 1.90);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump', 'Gap'], [[719, 1222]], [2, 1, 4]);
+        Obstacle.Filter.Finder := False;
+        Obstacle.Finder.Colors += CTS2(6123647, 25, 0.32, 0.57);
+        Obstacle.Finder.Colors += CTS2(1601899, 10, 0.27, 1.90);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump', 'Edge'], [[993, 1247]], [1, 3, 4]);
+        Obstacle.Filter.Finder := False;
+        Obstacle.Finder.Colors += CTS2(6123647, 25, 0.32, 0.57);
+        Obstacle.Finder.Colors += CTS2(1601899, 10, 0.27, 1.90);
+        AgilityCourse.Obstacles += Obstacle;
+      end;
+
+    ERSCourse.POLLNIVNEACH:
+      begin
+        AgilityCourse.Level := 70;
+
+        AgilityCourse.Steps := PollnivneachATPA;
+
+        Obstacle.SetObject(['Climb-on', 'Basket'], [[1426, 242]], [1, 1, 3]);
+        Obstacle.Finder.Colors += CTS2(6923178, 12, 0.04, 0.73);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump-on', 'Market', 'stall'], [[1288, 518]], [1, 2, 4]);
+        Obstacle.Finder.Colors += CTS2(10071481, 7, 0.08, 0.63);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Grab', 'Banner'], [[1316, 484]], [1.5, 2, 4]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Leap', 'Gap'], [[1346, 491]], [2, 1, 4]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump-to', 'Tree'], [[1360, 489]], [2, 1, 4]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Climb', 'Rough', 'wall'], [[1349, 468]], [0.3, 1, 7]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Cross', 'Monkey', 'bars'], [[1165, 723]], [1, 1, 7]);
+        Obstacle.Finder.Colors += CTS2(6777970, 21, 0.38, 0.08);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump-on T', 'Tree'], [[1173, 676]], [1.5, 2, 0]);
+        Obstacle.Finder.Colors += CTS2(1669216, 29, 0.16, 1.23);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump-to D', 'Drying', 'line'], [[1187, 661]], [1.5, 1.5, 0]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+      end;
+  (*
+    ERSCourse.PRIFDDINAS_ROOFTOP:
+      begin
+        AgilityCourse.Level := 75 ;
+
+        AgilityCourse.Steps := PrifddinasATPA;
+
+        Obstacle.SetObject(['Climb', 'Ladder'], [[1803, 889]], [1, 1, 8]);
+        Obstacle.Finder.ColorClusters += [CTS2(5400692, 15, 0.14, 0.11), CTS2(12235184, 9, 0.21, 0.16), 15];
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Cross', 'Tightrope'], [[1385, 984]], [1, 1, 0]);
+        Obstacle.Finder.Colors += CTS2(9795234, 20, 1.20, 0.77);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump', 'Chimney'], [[1448, 974]], [1, 1, 5]);
+        Obstacle.Finder.Colors += CTS2(7770467, 10, 0.07, 0.34);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump', 'Roof', 'edge'], [[1432, 937]], [1, 1, 3]);
+        Obstacle.Finder.Colors += CTS2(2766662, 11, 0.33, 0.68);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Enter', 'Dark', 'hole'], [[1864, 854]], [1, 1, 0]);
+        Obstacle.Finder.Colors += CTS2(1118485, 8, 0.03, 0.03);
+        Obstacle.Finder.Colors += CTS2(1776416, 8, 0.03, 0.03);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Climb', 'Ladder'], [[1870, 1274]], [1, 1, 13]);
+        Obstacle.Finder.Colors += CTS2(3428447, 16, 0.04, 0.69);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Cross', 'Rope', 'bridge'], [[1205, 1030]], [1, 1, 0]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Cross', 'Tight', 'rope'], [[1163, 1031]], [1, 1, 0]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Cross', 'Rope', 'bridge'], [[1134, 994]], [1, 1, 0]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Cross', 'Tight', 'rope'], [[1124, 955]], [1, 1, 0]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Cross', 'Tight', 'rope'], [[1164, 919]], [1, 1, 0]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Enter', 'Dark', 'hole'], [[1823, 1123]], [1, 1, 0]);
+        Obstacle.Finder.Colors += CTS2(1118485, 8, 0.03, 0.03);
+        Obstacle.Finder.Colors += CTS2(1776416, 8, 0.03, 0.03);
+        AgilityCourse.Obstacles += Obstacle;
+      end;
+  *)
+    ERSCourse.RELLEKKA:
+      begin
+        AgilityCourse.Level := 80;
+
+        AgilityCourse.Steps := RellekkaATPA;
+
+        Obstacle.SetObject(['Climb', 'Rough', 'wall'], [[1714, 179]], [1, 1, 4]);
+        Obstacle.Finder.Colors += CTS2(1779503, 8, 0.30, 1.54);
+        Obstacle.Finder.Colors += CTS2(4879761, 10, 0.10, 0.58);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Leap', 'Gap'], [[1356, 713]], [2, 1, 4]);
+        Obstacle.Filter.Finder := False;
+        Obstacle.Finder.Colors += CTS2(6123647, 25, 0.32, 0.57);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Cross', 'Tight', 'rope'], [[1357, 763]], [1, 1, 0]);
+        Obstacle.Filter.Finder := False;
+        Obstacle.Finder.ColorClusters += [CTS2(3625572, 21, 0.07, 0.13), CTS2(6123647, 25, 0.32, 0.57), 10];
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Leap', 'Gap'], [[1387, 771]], [3, 1, 4]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Hurdle', 'Gap'], [[1442, 777]], [2, 1, 4]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Cross', 'Tight', 'rope'], [[1457, 743]], [1, 1, 0]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump', 'Pile', 'fish'], [[1485, 693]], [2, 2, 4]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+      end;
+
+    ERSCourse.ARDOUGNE_ROOF:
+      begin
+        AgilityCourse.Level := 90;
+
+        AgilityCourse.Steps := ArdougneATPA;
+
+        Obstacle.SetObject(['Wooden', 'Beams'], [[1610, 1255]], [1, 1, 4]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump', 'Gap'], [[978, 895]], [1, 1, 4]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['-on', 'Plank'], [[942, 861]], [1.5, 0.8, 0]);
+        Obstacle.Finder.Colors += CTS2(5071471, 21, 0.06, 0.17);
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump', 'Gap'], [[908, 863]], [1, 1.5, 4]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump', 'Gap'], [[908, 899]], [1, 1.5, 4]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Balance', 'Steep', 'roof'], [[911, 934]], [1.5, 1, 4]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+
+        Obstacle.SetObject(['Jump', 'Gap'], [[922, 949]], [1, 1.5, 4]);
+        Obstacle.Filter.Finder := False;
+        AgilityCourse.Obstacles += Obstacle;
+      end;
+  end;
+end;
+
+//Sets up RSGroundItems for marks of grace.
+procedure TRSMMDot.SetupMOG(Tile: TPoint; polyFilter: TPointArray); overload;
+begin
+  Self.SetupCoordinates([Tile]);
+  if Self.Filter.Skip then
+    Exit;
+
+  Self.DotFilter := []; //Reset the filters so previously setup marks don't mess things up.
+  Self.DotFilter.Setup(polyFilter, True);
+
+  Self.ShapeArray.SetShape([1, 1, 2]);
+  Self.SetupUpText(['Mark', 'of', 'grace']);
+  Self.DotType := ERSMinimapDot.ITEM;
+
+  Self.Finder.ClusterDistance := 3;
+  Self.Finder.Erode := 2;
+  Self.Finder.Grow := 4;
+  Self.Finder.Colors += CTS2(1912750, 10, 0.08, 0.45);
+  Self.Finder.Colors += CTS2(2207170, 5, 0.07, 0.43);
+  Self.Finder.Colors += CTS2(2763264, 1, 0.01, 0.01);
+  Self.Finder.ColorClusters += [CTS2(1912750, 10, 0.08, 0.45), CTS2(2207170, 5, 0.07, 0.43), 50];
+  Self.Finder.ColorClusters += [CTS2(2207170, 5, 0.07, 0.43), CTS2(2763264, 1, 0.01, 0.01), 50];
+end;
+
+//Sets up RSObjects for Prif Portals if we are using Prif course.
+procedure TRSObject.SetupPortal(Tile: TPoint);
+begin
+  Self := [];
+  Self.Setup(7, [Tile]);
+  Self.SetupUpText(['Travel', 'Portal']);
+  Finder.Colors += CTS2(12238471, 14, 0.18, 0.61);
+  Finder.Colors += CTS2(12764802, 8, 0.26, 2.12);
+  Finder.Colors += CTS2(8489805, 11, 0.21, 0.96);
+  Finder.Colors += CTS2(8555596, 11, 0.21, 1.06);
+  Finder.Colors += CTS2(7505221, 17, 0.45, 1.04);
+  Finder.Colors += CTS2(9282438, 20, 0.88, 0.63);
+  Finder.MinShortSide := 10;
+  Finder.MaxLongSide := 150;
+end;
+
+//Sets up RSGroundItems for Marks of Grace if our course has marks.
+procedure TAgility.SetupMarksOfGrace();
+begin
+  MarkOfGrace := RSGroundItems.MarkOfGrace;
+
+  MarkValue := ItemData.GetAverage('12640') * 10;
+
+  case CurrentCourse of
+    ERSCourse.DRAYNOR_VILLAGE:
+      begin
+        AgilityCourse.MOGSteps := [1, 2, 3, 6];
+
+        MarkOfGrace.SetupMOG([542, 90], AgilityCourse.Steps[1]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+
+        MarkOfGrace.SetupMOG([500, 107], AgilityCourse.Steps[2]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+
+        MarkOfGrace.SetupMOG([512, 142], AgilityCourse.Steps[3]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+
+        MarkOfGrace.SetupMOG([535, 174], AgilityCourse.Steps[6]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+      end;
+
+    ERSCourse.ALKHARID:
+      begin
+        AgilityCourse.MOGSteps := [1, 2, 3, 4, 7];
+
+        MarkOfGrace.SetupMOG([720, 411], AgilityCourse.Steps[1]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+
+        MarkOfGrace.SetupMOG([680, 503], AgilityCourse.Steps[2]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+
+        MarkOfGrace.SetupMOG([756, 471], AgilityCourse.Steps[3]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+
+        MarkOfGrace.SetupMOG([449, 369], AgilityCourse.Steps[4]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+
+        MarkOfGrace.SetupMOG([832, 403], AgilityCourse.Steps[7]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+
+      end;
+
+    ERSCourse.VARROCK_ROOF:
+      begin
+        AgilityCourse.MOGSteps := [3, 5, 6, 7];
+
+        MarkOfGrace.SetupMOG([855, 679], AgilityCourse.Steps[3]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+
+        MarkOfGrace.SetupMOG([478, 763], AgilityCourse.Steps[5]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+
+        MarkOfGrace.SetupMOG([593, 732], AgilityCourse.Steps[6]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+
+        MarkOfGrace.SetupMOG([666, 720], AgilityCourse.Steps[7]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+      end;
+
+    ERSCourse.CANIFIS:
+      begin
+        AgilityCourse.MOGSteps := [1, 2, 3, 4, 5];
+
+        MarkOfGrace.SetupMOG([749, 899], AgilityCourse.Steps[1]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+
+        MarkOfGrace.SetupMOG([728, 858], AgilityCourse.Steps[2]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+
+        MarkOfGrace.SetupMOG([684, 875], AgilityCourse.Steps[3]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+
+        MarkOfGrace.SetupMOG([1212, 1197], AgilityCourse.Steps[4]);
+		    AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+
+        MarkOfGrace.SetupMOG([637, 943], AgilityCourse.Steps[5]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+      end;
+
+    ERSCourse.FALADOR_ROOF:
+      begin
+        AgilityCourse.MOGSteps := [2, 3, 8, 9, 11];
+
+        MarkOfGrace.SetupMOG([1138, 545], AgilityCourse.Steps[2]);
+		    AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+
+        MarkOfGrace.SetupMOG([1154, 498], AgilityCourse.Steps[3]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+
+
+        MarkOfGrace.SetupMOG([1035, 546], AgilityCourse.Steps[8]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+
+        MarkOfGrace.SetupMOG([1011, 545], AgilityCourse.Steps[9]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+
+        MarkOfGrace.SetupMOG([1018, 592], AgilityCourse.Steps[11]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+      end;
+
+	  ERSCourse.SEERS_VILLAGE, ERSCourse.CAMELOT:
+      begin
+        AgilityCourse.MOGSteps := [1, 2, 3, 4, 5];
+
+        MarkOfGrace.SetupMOG([821, 1125], AgilityCourse.Steps[1]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+
+        MarkOfGrace.SetupMOG([1013, 1124], AgilityCourse.Steps[2]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+
+        MarkOfGrace.SetupMOG([1034, 1180], AgilityCourse.Steps[3]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+
+        MarkOfGrace.SetupMOG([721, 1205], AgilityCourse.Steps[4]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+
+        MarkOfGrace.SetupMOG([979, 1240], AgilityCourse.Steps[5]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+      end;
+
+    ERSCourse.POLLNIVNEACH:
+      begin
+        AgilityCourse.MOGSteps := [1, 2, 6, 7, 8];
+
+        MarkOfGrace.SetupMOG([1282, 531], AgilityCourse.Steps[1]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+
+        MarkOfGrace.SetupMOG([1302, 498], AgilityCourse.Steps[2]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+
+        MarkOfGrace.SetupMOG([1172, 734], AgilityCourse.Steps[6]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+
+        MarkOfGrace.SetupMOG([1181, 691], AgilityCourse.Steps[7]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+
+        MarkOfGrace.SetupMOG([1162, 651], AgilityCourse.Steps[8]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+      end;
+    (*
+    PRIFDDINAS_ROOFTOP:
+      begin
+        AgilityCourse.MOGSteps := [1, 4, 7, 8, 9, 10];
+
+        Portal.SetupPortal([1384, 960]);
+        AgilityCourse.PortalArray += Portal;
+
+        Portal.SetupPortal([1868, 860]);
+        AgilityCourse.PortalArray += Portal;
+
+        Portal.SetupPortal([1182, 1048]);
+        AgilityCourse.PortalArray += Portal;
+
+        Portal.SetupPortal([1122, 1009]);
+        AgilityCourse.PortalArray += Portal;
+
+        Portal.SetupPortal([1138, 970]);
+        AgilityCourse.PortalArray += Portal;
+
+        Portal.SetupPortal([1147, 914]);
+        AgilityCourse.PortalArray += Portal;
+      end;
+    *)
+    ERSCourse.RELLEKKA:
+      begin
+        AgilityCourse.MOGSteps := [1, 3, 4];
+
+        MarkOfGrace.SetupMOG([1358, 695], AgilityCourse.Steps[1]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+
+        MarkOfGrace.SetupMOG([1383, 783], AgilityCourse.Steps[3]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+
+        MarkOfGrace.SetupMOG([1430, 795], AgilityCourse.Steps[4]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+      end;
+
+    ERSCourse.ARDOUGNE_ROOF:
+      begin
+        AgilityCourse.MOGSteps := [3];
+
+        MarkOfGrace.SetupMOG([920, 862], AgilityCourse.Steps[3]);
+        AgilityCourse.MarkOfGraceArray += MarkOfGrace;
+      end;
+  end;
+end;
+
+
+//Initial script setup procedure. Setups variables needed for the script to work
+//and alsocalls the procedures above.
+procedure TAgility.Init(maxActions: UInt32; maxTime: UInt64); override;
+var
+  i: Int32;
+begin
+  inherited;
+
+  //i is used for rsw.setup scaling.
+  case CurrentCourse of
+    //ERSCourse.GNOME,
+    ERSCourse.APE_ATOLL,
+    ERSCourse.ARDOUGNE_ROOF: i := 5;
+    else i := 9;
+  end;
+
+  RSW.Setup('agility', i);
+
+  Self.SetupObstacles();
+  Self.SetupMarksOfGrace();
+
+  FoodHandler.Amount := 20;
+
+  if Antiban.BioDice() then
+    Options.SetNPCAttackOption(ERSAttackOption.HIDDEN)
+  else
+    Options.SetNPCAttackOption(ERSAttackOption.ALWAYS_RIGHT_CLICK);
+
+  AgilityLevel := Stats.GetLevel(ERSSkill.AGILITY);
+
+  if WLSettings.RemoteInput.HUDDebug then
+  begin
+    for i := 0 to High(AgilityCourse.Obstacles) do
+      DebugObjectArray += AgilityCourse.Obstacles[i];
+
+    for i := 0 to High(AgilityCourse.MarkOfGraceArray) do
+      DebugMMDotArray += AgilityCourse.MarkOfGraceArray[i];
+
+    for i := 0 to High(AgilityCourse.PortalArray) do
+      DebugObjectArray += AgilityCourse.PortalArray[i];
+  end;
+end;
+
+
+//Choose the item to alch. If there's no item setup or we ran out, calls TAgility.SetupAlchItem.
+function TAgility.SelectItem(step: Int32): Boolean;
+begin
+  if not DoAlchemy then
+    Exit;
+
+  Result := RSAlchHandler.SelectItem();
+  if Result then
+    if Self.GetNextStep(step) > -1 then
+    begin
+      TRSWalkerObject.CurrentUpText += 'Use';
+      AgilityCourse.Obstacles[Self.GetNextStep(step)].Hover();
+      TRSWalkerObject.CurrentUpText.Pop();
+    end;
+end;
+
+
+//Eats summer pie.
+function TAgility.BoostAgility(): Boolean;
+begin
+  Result := Inventory.Open() and (Inventory.ClickItem('Summer pie(1)') or Inventory.ClickItem('Summer pie(2)'));
+end;
+
+//Eats food.
+function TAgility.EatFood(): Boolean;
+begin
+  Result := Inventory.Open() and Inventory.Consume(ERSConsumable.FOOD);
+
+  if not Result and (Minimap.GetHPPercent() <= 20) then
+    TerminateScript('Low hp, turning off so we don''t die.');
+end;
+
+
+//Reset the current step we are at if we are on ground level.
+procedure TAgility.ResetStep(out Step: Int32);
+begin
+  if CurrentCourse = ERSCourse.CAMELOT then
+    Step := -1
+  else
+    Step := 0;
+end;
+
+//Get the current step we are at.
+function TAgility.GetStep(): Int32;
+var
+  i: Int32;
+begin
+  Position := RSW.GetMyPos();
+
+  Self.ResetStep(Result);
+
+  for i := 0 to High(AgilityCourse.Steps) do
+    if SRL.PointInPoly(Position, AgilityCourse.Steps[i]) then
+    begin
+      if (CurrentCourse = ERSCourse.CAMELOT) and (i = 6) then
+        Exit(-1);
+      Exit(i);
+    end;
+end;
+
+//Check if we are at the last step. It's important to know because the last step usually takes longer to be
+//able to move after the xp drop.
+function TAgility.IsLastStep(step: Int32): Boolean;
+var
+  hi: Int32;
+begin
+  hi := High(AgilityCourse.Steps);
+  if CurrentCourse = ERSCourse.CAMELOT then
+    Result := step = (hi -1)
+  else
+    Result := step = hi;
+end;
+
+//Get the next step number.
+function TAgility.GetNextStep(step: Int32): Int32;
+begin
+  if Self.IsLastStep(Step) then
+    Self.ResetStep(Result)
+  else
+    Result := Step + 1;
+end;
+
+//Returns true if we are at the step we pass in.
+function TAgility.AtStep(step: Int32): Boolean;
+begin
+  Result := Self.GetStep() = step;
+end;
+
+//Checks if the step we got is valid.
+//This doesn't exactly tell you if you got the step right or wrong, but will tell you if it's completely invalid.
+//e.g. a starting step in a course, shouldn't return true on Minimap.OnGroundLevel.
+function TAgility.IsStepValid(step: Int32): Boolean;
+var
+  onGroundLevel: Boolean;
+begin
+  onGroundLevel := Minimap.OnGroundLevel();
+
+  case CurrentCourse of
+    ERSCourse.APE_ATOLL:
+      case step of
+        2: Result := not onGroundLevel;
+        else Result := onGroundLevel;
+      end;
+   (*
+    ERSCourse.PRIFDDINAS_ROOFTOP:
+      case Step of
+        0, 4, 5, 11: Result := OnGroundLevel;
+        else Result := not OnGroundLevel;
+      end;
+    *)
+    else
+      case step of
+        -1, 0: Result := onGroundLevel;
+        else Result := not onGroundLevel;
+      end;
+  end;
+
+  if not Result then
+  begin
+    WriteLn onGroundLevel;
+    WriteLn('Invalid step');
+    WriteLn('Step: '+ ToStr(Step));
+    WriteLn('Position: ' + ToStr(Position));
+
+    //SRL.Debug(RSClient.Image);
+  end;
+
+  if not Result then
+    SaveScreenshot('agility/invalidstep', True);
+end;
+
+
+//Draw course polygons.
+procedure TAgility.Draw(bitmap: TMufasaBitmap);
+var
+  polygon: TPointArray;
+begin
+  for polygon in AgilityCourse.Steps do
+    bitmap.DrawTPA(RSW.WorldToMM(polygon).Connect(), $00FFFF);
+
+  bitmap.DrawTPA(RSW.WorldToMM(AgilityCourse.Steps[CourseStep]).Connect(), $FF0000);
+end;
+
+
+//Check for marks of grace if we are in a mark of grace step.
+function TAgility.CheckMarkOfGrace(Step: Int32): Boolean;
+var
+  i: Int32 := AgilityCourse.MOGSteps.Find(Step);
+  marksCount: Int32;
+begin
+  if i < 0 then
+    Exit;
+
+  if not AgilityCourse.MarkOfGraceArray[i].IsVisible() then
+    Exit;
+
+  marksCount := Inventory.CountItemStack('Mark of grace');
+
+  if AgilityCourse.MarkOfGraceArray[i].Click(True) then
+  begin
+    AgilityCourse.Obstacles[Step].Hover();
+    Wait(800);
+    Minimap.WaitMoving();
+    AgilityCourse.Obstacles[Step].Hover();
+    Result := WaitUntil(Inventory.CountItemStack('Mark of grace') > marksCount, 100, 5000);
+  end;
+
+  if Result then
+    TotalProfit += MarkValue;
+end;
+
+//check for a portal in prif if we are in a portal step.
+function TAgility.CheckPortal(Step: Int32): Boolean;
+var
+  i: Int32 := AgilityCourse.MOGSteps.Find(Step);
+begin
+  if i < 0 then Exit;
+  if Result := AgilityCourse.PortalArray[i].Click(True, 3) then
+  begin
+    Wait(800);
+    Minimap.WaitMoving;
+    XPBar.WaitXP(12000);
+  end;
+end;
+
+
+//Check if we failed the obstacle (Lost hp).
+function TAgility.FailedObstacle(): Boolean;
+begin
+  Result := (Minimap.GetHPLevel < CurrentHP) or Chat.HasContinue;
+end;
+
+
+//Attempt to advance step.
+function TAgility.AdvanceStep(step: Int32): Boolean;
+var
+  NextStep: Int32 := Self.GetNextStep(Step);
+  Failed: Boolean;
+begin
+  if (CurrentCourse = ERSCourse.CAMELOT) and (step = -1) then //if our course is camelot we want to teleport.
+  begin
+    Magic.CastSpell(ERSSpell.CAMELOT_TELEPORT);
+    if DoAlchemy then
+      RSAlchHandler.SelectSpell();
+    if Result := XPBar.WaitXP(4000, 100) then
+      Wait(1400);
+  end
+
+  //if our course if seers village we don't want to walk and click the starting obstacle like the next if statement.
+  //This is because more often than not we will accidently enter the bank.
+  //To solver this, we walk to a random tile close to the bank entrance and stop. Next loop we click the obstacle.
+  else if (CurrentCourse = ERSCourse.SEERS_VILLAGE) and (step = 0) and not Position.WithinDistance([490, 1101], 15) then
+    Exit(RSW.WebWalk(SeersTPA.RandomValue(), 50, 0.2))
+
+  //attempt to click if the obstacle is visible, if not walk to it then click.
+  else
+  begin
+    if not AgilityCourse.Obstacles[step].WalkClick() then
+      Exit;
+    if DoAlchemy then
+      RSAlchHandler.SelectSpell()
+    else if Self.GetNextStep(step) > -1 then
+      AgilityCourse.Obstacles[Self.GetNextStep(step)].Hover();
+
+    Minimap.WaitMoving();
+
+    if not WaitUntil(XPBar.EarnedXP() or (Failed := Self.FailedObstacle()), 600, 18000) then
+      Exit(False);
+  end;
+
+  if not Failed then
+    Result := WaitUntil(Self.GetStep() = Self.GetNextStep(step), 100, 13000);
+
+  case CurrentCourse of
+    ERSCourse.CANIFIS: Wait(300);
+    ERSCourse.POLLNIVNEACH: if Self.IsLastStep(step) then Wait(800);
+    ERSCourse.RELLEKKA: if Self.IsLastStep(step) then Wait(800);
+  end;
+
+  if DoAlchemy then
+    Self.SelectItem(step)
+  else if Self.GetNextStep(step) > -1 then
+    AgilityCourse.Obstacles[Self.GetNextStep(step)].Hover();
+
+  if Failed then
+  begin
+    Result := False;
+    if Inventory.ContainsAny(['Summer pie(1)', 'Summer pie(2)']) then
+      Self.BoostAgility()
+    else if Self.AgilityLevel < AgilityCourse.Level then
+      TerminateScript('Out of summer pies')
+    else if Minimap.GetHPPercent() <= Random(25, 40) then
+      Self.EatFood();
+  end;
+
+  if Result and (NextStep < 1) then
+    Self.TotalActions += 1;
+end;
+
+
+//Main loop of the script.
+procedure TAgility.Run(maxActions: UInt32; maxTime: UInt64);
+var
+  Attempt: Int32;
+  TPA: TPointArray;
+begin
+  Self.Init(maxActions, maxTime);
+
+  repeat
+    Self.CurrentHP := Minimap.GetHPLevel();
+
+    for Attempt := 0 to 20 do
+    begin
+      Self.CourseStep := Self.GetStep();
+
+      if Self.IsStepValid(Self.CourseStep) then //This loops up to 20 times because sometimes we think we advanced the obstacle prematurely.
+        Break;                             //Normally so many attempts is not a good idea but here it's fine because we are just waiting not doing anything.
+
+      Wait(2400);
+
+      if Attempt = 20 then
+        TerminateScript('We seem to be lost, can''t advance course step');
+    end;
+
+    Self.SetAction('Step ' + ToStr(Self.CourseStep));
+
+    if WL.Activity.IsFinished() then
+      Break;
+
+    for Attempt := 0 to 10 do
+    begin
+      if MainScreen.HasInterface() then
+        MainScreen.CloseInterface();
+
+      (*
+      if (CurrentCourse = ERSCourse.PRIFDDINAS_ROOFTOP) and
+          Self.CheckPortal(Self.CourseStep) then
+        Break;
+      *)
+
+      Self.CheckMarkOfGrace(Self.CourseStep);
+
+      if WLSettings.RemoteInput.HUDDebug then
+        SRL.Debug(RSClient.Image);
+
+      if Self.AdvanceStep(Self.CourseStep) then
+        Break;
+
+      if XPBar.WaitXP(3000) then
+        Break;
+
+      case Attempt of
+      2..5: Antiban.RandomRotate();
+      6..7:
+        begin
+          TPA := [Self.AgilityCourse.Obstacles[Self.CourseStep].Coordinates.RandomValue(), Self.RSW.GetMyPos()];
+          Self.RSW.WebWalk(TPA.Mean());
+          if Attempt = 7 then
+          begin
+            MM2MS.ZoomLevel := -1;
+            RSMouseZoom.ZoomLevel := -1;
+          end;
+        end;
+      8..9:
+        begin
+          TPA := [Self.AgilityCourse.Obstacles[Self.CourseStep].Coordinates.RandomValue(), Self.RSW.GetMyPos()];
+          Self.RSW.WebWalk(TPA.Mean());
+          Antiban.RandomRotate();
+        end;
+      10:
+        begin
+          WriteLn('Last position: ' + ToStr(Position));
+          WriteLn('Up-text: ' + MainScreen.GetUpText());
+          WriteLn('CurrentStep: ' + ToStr(Self.CourseStep));
+          Self.AgilityCourse.Obstacles[Self.CourseStep].SaveDebug();
+          TerminateScript('We reached 10 attempts trying to advance. Terminating.');
+        end;
+      end;
+
+      Self.CourseStep := Self.GetStep();
+    end;
+
+    Self.DoAntiban();
+  until Self.ShouldStop();
+end;
+
+var
+  Agility: TAgility;
+
+
+function RSAlchHandler.GetAlchItem(): TRSItem; static; override;
+var
+  match: TRSItemFinderMatch;
+  itemStr: String;
+begin
+  if not Inventory.Open() and not Inventory.SetSelectedSlot(-1) then
+    Exit;
+
+  if not ItemFinder.Find(RSAlchHandler.ItemArray, Inventory.GetSlotBoxes(), match) then
+  begin
+    RSAlchHandler.Disabled := True;
+    DoAlchemy := False;
+    Exit;
+  end;
+
+  Result := match.Item;
+  itemStr := Result;
+
+  RSAlchHandler.DebugLn('Found item: ' + itemStr);
+
+  itemStr := itemStr.After('noted ');
+  RSAlchHandler.LowProfit  := ItemData.GetLowAlchProfit(itemStr);
+  RSAlchHandler.HighProfit := ItemData.GetHighAlchProfit(itemStr);
+end;
+
+procedure TRSWalker.InternalSetup(); override;
+begin
+  inherited;
+  Self.WebGraph := WaspAgility;
+end;
+
+procedure TRSWalkerMap.Load(FileName: String; Scaling: Integer); override;
+var
+  tpa: TPointArray;
+  i: Int32;
+  hFileName: String;
+begin
+  hFileName := ExtractFilePath(FileName) + 'h' + ExtractFileName(FileName);
+  RSHeightMap.Disabled := RSHeightMap.Disabled or (RSHeightMap.MaxHeight = 0) or
+                          not FileExists(hFileName);
+
+  Self.Map := Self.InternalLoadMap(FileName);
+
+  if not RSHeightMap.Disabled then
+  begin
+    RSHeightMap.Map := Self.InternalLoadMap(hFileName);
+    RSHeightMap.Disabled := (Self.Map.getWidth() <> RSHeightMap.Map.getWidth()) or
+                            (Self.Map.getHeight() <> RSHeightMap.Map.getHeight());
+
+
+    if RSHeightMap.Disabled then
+      RSHeightMap.Map.Free()
+    else
+      AddOnTerminate(@RSHeightMap.Map.Free);
+  end;
+
+  for i := 0 to High(RSCOURSES) do
+  begin
+    if (CurrentCourse = ERSCourse.SEERS_VILLAGE) and (i = 7) then
+      Continue;
+
+    if (CurrentCourse = ERSCourse.CAMELOT) and (i = 6) then
+      Continue;
+
+    if i <> Ord(CurrentCourse) then
+      for tpa in RSCOURSES[i] do
+      begin
+        tpa := tpa.Connect();
+        tpa.Fill();
+        tpa := tpa.Grow(15);
+        Self.Map.DrawATPA(tpa.ToATPA(4,4));
+      end;
+  end;
+
+  Self.ScaledMap.Init();
+  AddOnTerminate(@Self.Free);
+  Self.Map.Downsample(Scaling, Self.ScaledMap);
+end;
+
+//Override WebGraph.PathBetween so it doesn't crash the scripst when the points don't match. Instead it will try again.
+function TWebGraph.PathBetween(p,q: TPoint; Rnd:Double=0): TPointArray; constref; override;
+begin
+  try
+    Result := inherited;
+  except 
+    // WriteLn GetExceptionMessage();
+    // SaveScreenshot('agility/path_issue', True);
+    Agility.RSW.Enabled := False;
+  end;
+end;
+
+//GameTabs.Open override for Ape Atoll that magic tab can't be opened.
+function TRSGameTabs.Open(Tab: ERSGameTab): Boolean; override;
+begin
+  if GetCurrentTab = Tab then Exit(True);
+
+  if (CurrentCourse = ERSCourse.APE_ATOLL) and (Tab = ERSGameTab.MAGIC) then
+    Exit(True);
+
+  if not (Result := Self.FKeyOpen(Tab)) then
+  Result := inherited;
+end;
+
+//Magic.IsOpen override for Ape Atoll that magic tab can't be opened.
+function TRSMagic.IsOpen(): Boolean; override;
+begin
+  Result := (CurrentCourse = ERSCourse.APE_ATOLL);
+
+  if not Result then
+    Result := inherited;
+end;
+
+procedure TAntiban.WalkingTasks(); override;
+begin
+  case Random(0, 500) of
+    0..9:
+      begin
+        if not WLSettings.Antiban.Chat then Exit
+        else if (Random(20) <= 17) then Self.RandomChatButton()
+        else Self.RandomChatButtonState();
+      end;
+
+    10..19:
+      begin
+        if not WLSettings.Antiban.Camera then Exit
+        else if (Random(10) <= 3) then Self.RandomRotate();
+      end;
+
+    20..29:
+      begin
+        if not WLSettings.Antiban.Mouse then Exit
+        else if (Random(10) <= 3) then Self.RandomRightClick()
+        else Self.SmallRandomMouse();
+      end;
+
+    30..39:
+      begin
+        if not WLSettings.Antiban.GameTabs then Exit
+        else if (Random(10) <= 9) then Self.RandomTab()
+        else Self.CheckCharges();
+      end;
+
+    40..59: Agility.DoAntiban(True, True);
+  end;
+end;
+
+
+//Add Agility.Draw to SRL.Debug
+procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;
+begin
+  inherited;
+
+  Agility.Draw(Bitmap);
+end;
+
+{$IFDEF SCRIPT_GUI}
+//GUI Setup.
+type
+  TAgilityConfig = record(TScriptForm)
+    CourseSelector: TLabeledCombobox;
+    AlchState: TLabeledCheckBox;
+  end;
+
+procedure TAgilityConfig.StartScript(sender: TObject); override;
+begin
+  CurrentCourse := ERSCourse(Self.CourseSelector.GetItemIndex());
+  DoAlchemy := Self.AlchState.IsChecked();
+  inherited;
+end;
+
+procedure TAgilityConfig.Run(); override;
+var
+  tab: TTabSheet;
+begin
+  Self.Setup('Wasp Agility');
+  Self.Start.setOnClick(@Self.StartScript);
+
+  Self.AddTab('Script Settings');
+  tab := Self.Tabs[High(Self.Tabs)];
+
+  Self.CreateAccountManager(tab);
+
+  with Self.CourseSelector do
+  begin
+    Create(tab);
+    SetCaption('Agility course:');
+    SetLeft(TControl.AdjustToDPI(30));
+    SetTop(TControl.AdjustToDPI(180));
+    SetStyle(csDropDownList);
+    AddItemArray(['Draynor rooftop', 'Al Kharid rooftop', 'Varrock rooftop',
+                  'Canifis rooftop', 'Ape Atoll', 'Falador rooftop',
+                  'Seers'' rooftop', 'Camelot rooftop (Seers'' with teleport)',
+                  'Pollnivneach rooftop', 'Rellekka rooftop', 'Ardougne rooftop']);
+    SetItemIndex(Ord(CurrentCourse));
+  end;
+
+  with Self.AlchState do
+  begin
+    Create(tab);
+    SetCaption('High alchemy');
+    SetLeft(Self.CourseSelector.GetRight() + TControl.AdjustToDPI(15));
+    SetTop(Self.CourseSelector.GetTop() + TControl.AdjustToDPI(20));
+    SetChecked(DoAlchemy);
+  end;
+
+  Self.CreateVersionPanel(tab);
+  Self.CreateAlchemyPanel();
+  Self.CreateAntibanManager();
+  Self.CreateWaspLibSettings();
+  Self.CreateAPISettings();
+
+  inherited;
+end;
+
+var
+  AgilityConfig: TAgilityConfig;
+{$ENDIF}
+
+begin
+  {$IFDEF SCRIPT_GUI}
+  AgilityConfig.Run();
+  {$ENDIF}
+  Agility.Run(WLSettings.MaxActions, WLSettings.MaxTime);
+end.
